@@ -6,7 +6,6 @@ npm-debug.log
 *.env
 *.env.local
 *.env.*.local
-Dockerfile
 docker-compose.override.yml
 
 # VSCode / Editor files
