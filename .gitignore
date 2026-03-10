@@ -1,0 +1,17 @@
+# Node.js
+node_modules/
+npm-debug.log
+
+# Docker
+*.env
+*.env.local
+*.env.*.local
+Dockerfile
+docker-compose.override.yml
+
+# VSCode / Editor files
+.vscode/
+.idea/
+
+node_modules
+.env
