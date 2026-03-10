@@ -27,8 +27,8 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -f app/Dockerfile -t your-dockerhub-username/credpal-app:latest app/
+          docker build -f app/Dockerfile -t oluwasomidotun0502/credpal-app:latest app/
 
       - name: Push Docker image
         run: |
-          docker push your-dockerhub-username/credpal-app:latest
+          docker push oluwasomidotun0502/credpal-app:latest
