@@ -1,9 +1,11 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
 
-COPY app/package*.json ./
+# Copy only package.json and package-lock.json first
+COPY package*.json ./
 RUN npm install --production
 
+# Copy the rest of the app
 COPY . .
 
 FROM node:18-alpine
@@ -14,6 +16,7 @@ RUN apk add --no-cache curl
 WORKDIR /app
 COPY --from=builder /app .
 
+# Create non-root user
 RUN addgroup -S nodegroup && adduser -S nodeuser -G nodegroup
 USER nodeuser
 
