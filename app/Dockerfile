@@ -4,7 +4,7 @@ WORKDIR /app
 COPY app/package*.json ./
 RUN npm install --production
 
-COPY app .
+COPY . .
 
 FROM node:18-alpine
 
