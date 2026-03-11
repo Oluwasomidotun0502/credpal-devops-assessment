@@ -3,6 +3,12 @@ const app = express();
 
 app.use(express.json());
 
+// Root route
+app.get('/', (req, res) => res.send('Welcome to CredPal API'));
+
+// API route
+app.get('/api', (req, res) => res.json({ message: "CredPal API is running" }));
+
 // Health check
 app.get('/health', (req, res) => res.status(200).json({ status: "healthy" }));
 

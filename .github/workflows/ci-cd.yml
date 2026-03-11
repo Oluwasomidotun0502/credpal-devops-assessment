@@ -1,17 +1,14 @@
-name: Node.js CI/CD
+name: Node.js CI/CD Blue-Green
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -32,3 +29,53 @@ jobs:
       - name: Push Docker image
         run: |
           docker push oluwasomidotun0502/credpal-app:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            # Blue-Green Deployment
+            APP_IMAGE="oluwasomidotun0502/credpal-app:latest"
+            BLUE_CONTAINER="credpal-blue"
+            GREEN_CONTAINER="credpal-green"
+            LIVE_CONTAINER=$(docker ps --format '{{.Names}}' | grep -E "$BLUE_CONTAINER|$GREEN_CONTAINER" || true)
+            if [ "$LIVE_CONTAINER" == "$BLUE_CONTAINER" ]; then
+              NEXT_CONTAINER=$GREEN_CONTAINER
+            else
+              NEXT_CONTAINER=$BLUE_CONTAINER
+            fi
+            echo "Deploying to $NEXT_CONTAINER"
+            docker pull $APP_IMAGE
+            docker stop $NEXT_CONTAINER || true
+            docker rm $NEXT_CONTAINER || true
+            PORT=3001
+            if [ "$NEXT_CONTAINER" == "$BLUE_CONTAINER" ]; then
+              PORT=3000
+            fi
+            docker run -d --name $NEXT_CONTAINER -p $PORT:3000 --restart always $APP_IMAGE
+            # Nginx reverse proxy
+            sudo tee /etc/nginx/sites-available/credpal <<EOF
+server {
+    listen 80;
+    server_name credpal.webredirect.org;
+
+    location / {
+        proxy_pass http://127.0.0.1:$PORT;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+            sudo ln -sf /etc/nginx/sites-available/credpal /etc/nginx/sites-enabled/credpal
+            sudo nginx -s reload
+            if [ -n "$LIVE_CONTAINER" ]; then
+              docker stop $LIVE_CONTAINER
+              docker rm $LIVE_CONTAINER
+            fi
+            echo "Deployment complete! Live container: $NEXT_CONTAINER"
